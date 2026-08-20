@@ -1,24 +1,67 @@
-const db = require('./db');
+const UserModel = require('./models/User');
+
+function normalize(user) {
+  if (!user) return null;
+  const u = user.toObject ? user.toObject() : user;
+  return {
+    id: String(u._id || u.id),
+    username: u.username,
+    email: u.email || '',
+    login: u.login,
+    password_hash: u.passwordHash || null,
+    provider: u.provider,
+    google_sub: u.googleSub || null,
+    created_at: u.createdAt
+  };
+}
 
 const User = {
-  findById(id) {
-    return db.prepare('SELECT id, username, email, login, provider, created_at FROM users WHERE id = ?').get(id);
+  async findById(id) {
+    if (!id) return null;
+    const user = await UserModel.findById(id).lean();
+    return normalize(user);
   },
-  findByLogin(login) {
-    return db.prepare('SELECT * FROM users WHERE lower(login) = lower(?) OR lower(email) = lower(?) OR lower(username) = lower(?)').get(login, login, login);
+
+  async findByLogin(login) {
+    const value = String(login || '').trim().toLowerCase();
+    if (!value) return null;
+    const user = await UserModel.findOne({
+      $or: [
+        { login: value },
+        { email: value },
+        { username: new RegExp(`^${value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') }
+      ]
+    }).lean();
+    return normalize(user);
   },
-  findByGoogleSub(sub) {
-    return db.prepare('SELECT * FROM users WHERE google_sub = ?').get(sub);
+
+  async findByGoogleSub(sub) {
+    if (!sub) return null;
+    const user = await UserModel.findOne({ googleSub: String(sub) }).lean();
+    return normalize(user);
   },
-  createLocal({ username, email, login, passwordHash }) {
-    const info = db.prepare(`INSERT INTO users(username,email,login,password_hash,provider)
-      VALUES(?,?,?,?, 'local')`).run(username, email || null, login, passwordHash);
-    return this.findById(info.lastInsertRowid);
+
+  async createLocal({ username, email, login, passwordHash }) {
+    const created = await UserModel.create({
+      username,
+      email: email || '',
+      login: String(login).toLowerCase(),
+      passwordHash,
+      provider: 'local'
+    });
+    return normalize(created);
   },
-  createGoogle({ username, email, sub }) {
-    const info = db.prepare(`INSERT INTO users(username,email,login,password_hash,provider,google_sub)
-      VALUES(?,?,?,NULL,'google',?)`).run(username, email, email.toLowerCase(), sub);
-    return this.findById(info.lastInsertRowid);
+
+  async createGoogle({ username, email, sub }) {
+    const created = await UserModel.create({
+      username,
+      email: String(email).toLowerCase(),
+      login: String(email).toLowerCase(),
+      passwordHash: null,
+      provider: 'google',
+      googleSub: String(sub)
+    });
+    return normalize(created);
   }
 };
 
