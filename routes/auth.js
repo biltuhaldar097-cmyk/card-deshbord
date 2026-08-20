@@ -31,8 +31,21 @@ router.post('/signup', async (req, res) => {
     const user = await User.createLocal({ username, email, login, passwordHash });
     res.status(201).json({ token: userToken(user), user: publicUser(user) });
   } catch (e) {
-    if (e?.code === 11000) return res.status(409).json({ error: 'Username or email already exists' });
-    console.error(e);
+    if (e?.code === 11000) {
+      const field =
+        Object.keys(e.keyPattern || {})[0] ||
+        Object.keys(e.keyValue || {})[0] ||
+        'account';
+
+      if (field === 'email' || field === 'login') {
+        return res.status(409).json({ error: 'This email/account already exists. Please sign in instead.' });
+      }
+
+      // Username collisions should normally be avoided automatically by user.js.
+      return res.status(409).json({ error: `Account field already exists: ${field}` });
+    }
+
+    console.error('Signup error:', e);
     res.status(500).json({ error: 'Could not create account' });
   }
 });
