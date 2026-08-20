@@ -1,21 +1,24 @@
 {
-  "name": "safe-card-database-demo",
-  "version": "1.0.0",
+  "name": "safe-card-mongodb-backend",
+  "version": "2.0.0",
   "private": true,
-  "description": "Node/Express + SQLite backend for persistent user accounts and demo purchase history.",
+  "description": "Node/Express + MongoDB backend for persistent user accounts and request history.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js"
   },
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {
     "bcryptjs": "^2.4.3",
-    "better-sqlite3": "^11.8.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "google-auth-library": "^9.15.1",
     "helmet": "^8.0.0",
-    "jsonwebtoken": "^9.0.2"
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.18.0"
   }
 }
